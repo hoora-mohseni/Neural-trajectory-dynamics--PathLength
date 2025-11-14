@@ -1,0 +1,64 @@
+%====================================================================================
+%% Visualize Connectivity Matrices
+%====================================================================================
+
+figure('color', 'w')
+subplot(231); imagesc(meanCorrMatrices.restDay1); title('meanCorr rest day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(232); imagesc(meanCorrMatrices.baselineDay1); title('meanCorr baseline day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(233); imagesc(meanCorrMatrices.earlyDay1); title('meanCorr early day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(234); imagesc(meanCorrMatrices.lateDay1); title('meanCorr late day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(233); imagesc(meanCorrMatrices.learningDay1); title('meanCorr learning day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(234); imagesc(meanCorrMatrices.washoutDay1); title('meanCorr washout day1'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+
+figure('color', 'w')
+subplot(231); imagesc(meanCorrMatrices.restDay2); title('meanCorr rest day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(232); imagesc(meanCorrMatrices.baselineDay2); title('meanCorr baseline day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(233); imagesc(meanCorrMatrices.earlyDay2); title('meanCorr early day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(234); imagesc(meanCorrMatrices.lateDay2); title('meanCorr late day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(233); imagesc(meanCorrMatrices.learningDay2); title('meanCorr learning day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+subplot(234); imagesc(meanCorrMatrices.washoutDay2); title('meanCorr washout day2'); colormap(turbo); colorbar; axis square;xlabel('Brain Regions'); ylabel('Brain Regions');
+
+%====================================================================================
+%% Affinity Matrix
+%====================================================================================
+
+corrM = meanCorrMatrices.baselineDay1;
+
+% Normalize each row (or column) to unit length
+normed = corrM ./ vecnorm(corrM, 2, 2);
+
+% Compute cosine similarity manually (dot product of normalized vectors)
+affinityMatrix = normed * normed';
+
+% Plot
+figure('Color', 'w');
+imagesc(affinityMatrix);
+colormap(viridis); %colorbar; 
+axis square;
+title('Affinity Matrix (cosine similarity) - BaselineDay1');
+xlabel('Brain Regions'); ylabel('Brain Regions');
+set(gca, "FontSize", 10, 'LineWidth', .5, 'TickDir', 'none', 'XColor', 'none', 'YColor', 'none');
+
+
+%====================================================================================
+%% Gradients Matrices
+%====================================================================================
+
+gradientsMatrices = struct();
+
+for i = 1:numel(phases)
+    phase = phases{i};
+    gradientsMatrices.(phase) = gradientsmap.(phase).gradients{1};
+end
+
+% Gradient Visualization for all phases (using subplots to organize them)
+figure('Color', 'w');
+for i = 2%1:numel(phases)
+    phase = phases{i};
+    %subplot(3, 4, i); 
+    imagesc(gradientsMatrices.(phase)); 
+    title(['Gradients ', phase]); 
+    colormap(turbo); 
+    colorbar; 
+    axis square;
+end
