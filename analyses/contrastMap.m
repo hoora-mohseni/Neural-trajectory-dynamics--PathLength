@@ -2,8 +2,9 @@ clc
 clear
 close
 
+%====================================================================================
 %% Brain Map Generation
-
+%====================================================================================
 
 earlyRestD1 = restDay1(1:16, :, :);
 earlyRestD2 = restDay2(1:16, :, :);
@@ -25,8 +26,9 @@ earlyWashoutD2 = washoutDay2(1:16, :, :);
 lateWashoutD1 = washoutDay1(end-16+1:end, :, :);
 lateWashoutD2 = washoutDay2(end-16+1:end, :, :);
 
-
+%====================================================================================
 %% mean activation
+%====================================================================================
 
 contrastD1 = squeeze(mean(lateLearningD1, 1) - mean(earlyLearningD1, 1));  
 contrastD2 = squeeze(mean(lateLearningD2, 1) - mean(earlyLearningD2, 1));
@@ -53,84 +55,9 @@ for c = 1:numContrasts
 end
 %t_values(p_fdr > 0.05) = 0;
 
-
-%% plot hemispheres 
-
-%max_abs_t = max(abs(t_values), [], 'all'); 
-clim = [-6.6, 6.6];
-
-
-ParcelNumber = 400;
-[surf_lh, surf_rh] = load_conte69();
-
-% Load connectivity matrix from subset of HCP data; you can specify parcellation from [100, 200, 300, 400]
-labeling = load_parcellation('schaefer',ParcelNumber);
-conn_matrices = load_group_fc('schaefer',ParcelNumber);
-
-%t_values(t_values == 0) = NaN;
-writematrix(t_values, 't_values.csv')
-
-t_map = t_values(33:end-32, :);
-
-t_map(t_map(:, 1) == min(t_map(:, 1)), 1) = -max(t_map(:, 1));
-
-obj = plot_hemispheres(t_map, {surf_lh,surf_rh}, ...
-    'parcellation',labeling.schaefer_400, 'views', 'lm', ...
-    'labeltext', []);
-
-cmap = RedBlueCmap();
-cmap(1, :) = .9*[1, 1, 1];
-
-% Apply colormap only to cortical areas
-% colormaps(obj, cmap);  % Grey out NaNs
-% set([obj.axis], 'Clim', clim);
-
-
-obj.colormaps({cmap, cmap});
-obj.colorlimits([clim; clim]);
-
-
-%% Plot Subcortex 
-
-
-subcortex = t_values(1:32,:);
-new_order = [17:32, 1:16];
-subcortexData = subcortex( new_order , :);
-% Mymin = min(min(subcortexData));
-% Mymax = max(max(subcortexData));
-
-% Load the precomputed subcortical surface data
-load('subcorticalSurf.mat', 'VL', 'VR', 'nVL', 'nVR');
-cmap = RedBlueCmap();
-
-figure('color', 'w') 
-hold on;
-nexttile;    
-colormap(cmap);
-%colorbar;
-axis off;
-currentSubcortex = subcortexData(:,2);
-plotSubcortex(currentSubcortex, [-6.6,6.6] );  
-
- %% Plot Cerebellum 
-
-cerebellumData = t_values(433:464,:);  
-Mymin = min(min(cerebellumData));
-Mymax = max(max(cerebellumData));
-
-for i= 1:2
-    figure('color', 'w'); 
-    hold on;
-    nexttile;    
-    colormap(cmap);
-    %colorbar;
-    axis off;
-    plotCerebellum(cerebellumData(:,i), [-6.6,6.6] );  
-
-end
-
-
+%====================================================================================
 %%
+%====================================================================================
 
 lbl = readtable([pwd, '/schaefer_2018/schaefer400NodeNames.txt']);
 
@@ -140,7 +67,9 @@ sig_areas_d2_inc = lbl(t_map(:, 2) > 0, :);
 sig_areas_d1_dec = lbl(t_map(:, 1) < 0, :);
 sig_areas_d2_dec = lbl(t_map(:, 2) < 0, :);
 
-%% 
+%====================================================================================
+%% sliding window 
+%====================================================================================
 
 W = 16; % Window size
 S = 8;  % Step size
@@ -170,7 +99,9 @@ for subj = 1:numSubjects
     end
 end
 
+%====================================================================================
 %% BOLD and PL Correlation
+%====================================================================================
 
 BOLDcatD1 = BOLD.(epochs{1});
 PLcatD1   = pathLengthSliding.(epochs{1});
@@ -193,70 +124,10 @@ end
 
 Rmean = [mean(r1,1).',  mean(r2,1).']; 
 
-%% plot hemispheres 
 
-
-ParcelNumber = 400;
-[surf_lh, surf_rh] = load_conte69();
-
-% Load connectivity matrix from subset of HCP data; you can specify parcellation from [100, 200, 300, 400]
-labeling = load_parcellation('schaefer',ParcelNumber);
-conn_matrices = load_group_fc('schaefer',ParcelNumber);
-
-R_map = Rmean(33:end-32, :);
-
-R_map(R_map(:, 1) == min(R_map(:, 1)), 1) = -max(R_map(:, 1));
-
-obj = plot_hemispheres(R_map, {surf_lh,surf_rh}, ...
-    'parcellation',labeling.schaefer_400,'views', 'lm', ...
-    'labeltext', []);
-
-cmap = RedBlueCmap();
-cmap(1, :) = .9*[1, 1, 1];
-
-% Apply colormap only to cortical areas
-colormaps(obj, cmap);  % Grey out NaNs
-
-%% Plot Subcortex 
-
-
-subcortex = Rmean(1:32, :);
-new_order = [17:32, 1:16];
-subcortexData = subcortex( new_order , :);
-Mymin = min(min(subcortexData));
-Mymax = max(max(subcortexData));
-
-% Load the precomputed subcortical surface data
-load('subcorticalSurf.mat', 'VL', 'VR', 'nVL', 'nVR');
-cmap = RedBlueCmap();
-
-figure('color', 'w') 
-hold on;
-nexttile;    
-colormap(cmap);
-%colorbar;
-axis off;
-currentSubcortex = subcortexData(:,1);
-plotSubcortex(currentSubcortex, [-4,4] );  
-
- %% Plot Cerebellum 
-
-cerebellumData = Rmean(433:464,:);  
-Mymin = min(min(cerebellumData));
-Mymax = max(max(cerebellumData));
-
-for i= 1:2
-    figure('color', 'w'); 
-    hold on;
-    nexttile;    
-    colormap(cmap);
-    %colorbar;
-    axis off;
-    plotCerebellum(cerebellumData(:,i), [-4,4] );  
-
-end
-
+%====================================================================================
 %% Correlation Matrix
+%====================================================================================
 figure('color', 'w')
 
 
@@ -291,9 +162,9 @@ for i = 1:rows
              'FontSize', 10); % Adjust font size as needed
     end
 end
-
+%====================================================================================
 %% UMAP 
-
+%====================================================================================
 
 %Convert the Similarity (Correlation) Matrix to a Dissimilarity (Distance) Matrix
 distance_matrix = 1 - corrmatrix;
@@ -326,7 +197,9 @@ grid off;
 axis equal;
 box off;
 
+%====================================================================================
 %% Averagted t-values within each network barplot
+%====================================================================================
 
 % Extracting Major Network indices
 Ntwrk = {'vis', 'sommot', 'dorsattn', 'salventattn', 'limbic', 'cont', 'default'}; 
@@ -339,8 +212,9 @@ for n = 1:numel(Ntwrk)
     targetLoadings = corrmatrix_tvalues_6Con(NtwrkIdx{n}, :);
     NtwrkContrast.(Ntwrk{n}) = mean(targetLoadings, 1);
 end
-
-%%
+%====================================================================================
+%%  
+%====================================================================================
 % Define the network names (for X-axis labels)
 Ntwrk = {'vis', 'sommot', 'dorsattn', 'salventattn', 'limbic', 'cont', 'default'}; 
 NumNetworks = numel(Ntwrk);
@@ -351,7 +225,6 @@ PlotData = zeros(NumNetworks, 3);
 
 for n = 1:NumNetworks
     % Extract the 1x6 vector for the current network and place it in the matrix
-    % NOTE: This assumes NtwrkContrast has been correctly built in the previous step
     PlotData(n, :) = NtwrkContrast.(Ntwrk{n})(:,[1,3,5]); % day 1
     %PlotData(n, :) = NtwrkContrast.(Ntwrk{n})(:,[2,4,6]);  % day 2
 end
