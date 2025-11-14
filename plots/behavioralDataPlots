@@ -1,0 +1,77 @@
+%====================================================================================
+%% Plot error
+%====================================================================================
+
+figure('color', 'w', 'Position', [300, 300, 1000, 400]);
+
+x_s     = 5; %
+x_total = x_s;
+
+
+for j = 1:3
+    
+    numWin1 = size(error.(epochs{j+1}),2) ;
+
+    s1 = shadedErrorBar(x_s:x_s + numWin1 - 1, mean(error.(epochs{j+1}), 'omitnan'), std(error.(epochs{j+1}), 'omitnan')/sqrt(32), {'color',[0.3, 0.05, 0.4], 'LineWidth', 2}, 1, 1); 
+    hold on;
+
+    s2 = shadedErrorBar(x_s:x_s + numWin1 - 1, mean(error.(epochs{j+5}), 'omitnan'), std(error.(epochs{j+5}), 'omitnan')/sqrt(32), {'color',[0.1, 0.6, 0.4], 'LineWidth', 2}, 1, 1); 
+
+    x_s = x_s + numWin1 + 15;
+
+    x_total = [x_total, x_s-17];
+    x_total = [x_total, x_s];
+    
+end 
+hold on;
+
+box off;
+set(gca, "FontSize", 20, 'LineWidth', .8, 'TickDir', 'out')
+yticks(0:15:45); ylim([0, 45])
+xticks(x_total(1:end-1)); xticklabels([1, 29, 30, 109, 110, 139])
+xlim([0, x_total(end-1)])
+xlabel("Trial Number"); pl = ylabel("Angular Error"); 
+pl.Position = pl.Position - [3, 0, 0];
+lgd = legend([s1.patch, s2.patch], {"Day 1", "Day 2"}, "Location", "NorthEast");
+legend box off;
+lgd.ItemTokenSize = [40,50];
+lgd.IconColumnWidth = 50;
+
+%====================================================================================
+%% Plot reaction time
+%====================================================================================
+
+figure('color', 'w', 'Position', [300, 300, 1000, 400]);
+
+x_s     = 5; 
+x_total = x_s;
+
+
+for j = 1:3
+    
+    numWin1 = size(RT.(epochs{j+1}),2) ;
+    
+
+    s1 = shadedErrorBar(x_s:x_s + numWin1 - 1, mean(RT.(epochs{j+1})), std(RT.(epochs{j+1}))/sqrt(32), {'.-', 'color',[0.3, 0.05, 0.4], 'LineWidth', 2}, 1, 1); 
+    hold on;
+    s2 = shadedErrorBar(x_s:x_s + numWin1 - 1, mean(RT.(epochs{j+5})), std(RT.(epochs{j+5}))/sqrt(32), {'-', 'color',[0.1, 0.6, 0.4], 'LineWidth', 2}, 1, 1); 
+
+    x_s = x_s + numWin1 + 15;
+
+    x_total = [x_total, x_s-17];
+    x_total = [x_total, x_s];
+    
+end 
+hold on;
+box off;
+set(gca, "FontSize", 20, 'LineWidth', .8, 'TickDir', 'out')
+yticks(0:0.2:1.2); ylim([.6, 1.2])
+xticks(x_total(1:end-1)); xticklabels([22, 51, 52, 131, 132, 161])
+xlim([0, x_total(end-1)])
+xlabel("Trial Number"); pl = ylabel("Reaction Time"); 
+pl.Position = pl.Position - [3, 0, 0];
+lgd = legend([s1.patch, s2.patch], {"Day 1", "Day 2"}, "Location", "NorthEast");
+legend box off
+lgd.ItemTokenSize = [40,50];
+lgd.IconColumnWidth = 50;
+
