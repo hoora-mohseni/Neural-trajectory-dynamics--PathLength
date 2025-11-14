@@ -1,0 +1,73 @@
+%====================================================================================
+%% Correlation Matrix
+%====================================================================================
+
+figure('color', 'w')
+
+
+corrmatrix_tvalues_6Con = [t_values_EB_LR, tValue_EL_LB, tValue_LL_EL];
+corrmatrix_tvalues_4Con = [tValue_EL_LB, tValue_LL_EL];
+
+corrmatrix = corr(corrmatrix_tvalues_4Con);
+
+imagesc(corrmatrix); title('Correlation Matrix'); colormap(viridis); caxis([-1, 1]); colorbar; axis square;
+xlabel('contrasts map t values'); ylabel('contrasts map t values');
+ax = gca;
+ax.XTick = [];
+ax.YTick = [];
+
+[rows, cols] = size(corrmatrix);
+
+for i = 1:rows
+    for j = 1:cols
+        R_value_str = num2str(corrmatrix(i, j), '%.2f');
+        current_value = corrmatrix(i, j);
+        
+        if abs(current_value) < 0.25 
+            text_color = [0 0 0]; % Black text for mid-range (often yellow/green)
+        else
+            text_color = [1 1 1]; % White text for high/low (dark purple/bright yellow)
+        end
+        
+        text(j, i, R_value_str, ...
+             'HorizontalAlignment', 'center', ...
+             'VerticalAlignment', 'middle', ...
+             'Color', text_color, ...
+             'FontSize', 10); % Adjust font size as needed
+    end
+end
+
+%====================================================================================
+%% UMAP 
+%====================================================================================
+
+%Convert the Similarity (Correlation) Matrix to a Dissimilarity (Distance) Matrix
+distance_matrix = 1 - corrmatrix;
+
+% Use cmdscale (Classical MDS) for dimensionality reduction
+% Input: distance_matrix
+% Output: Y is the 4x2 matrix of coordinates, eigenvalue is the goodness-of-fit
+% 2 is the desired number of dimensions (for a 2D plot)
+[Y, eigenvalue] = cmdscale(distance_matrix, 2);
+
+% Y is your 4x2 coordinate matrix. Plotting the rows of Y will show your map.
+
+figure('Color', 'w', 'Position', [300, 300, 400, 400]);
+hold on; 
+plot(Y(1, 1), Y(1, 2),  'hexagram', 'MarkerSize', 15, 'MarkerFaceColor', [0.3, 0.05, 0.4], 'MarkerEdgeColor', [0.3, 0.05, 0.4]);   
+plot(Y(2, 1), Y(2, 2),   'hexagram', 'MarkerSize', 15, 'MarkerFaceColor', [0.1 , 0.6  , 0.4], 'MarkerEdgeColor', [0.1 , 0.6  , 0.4]);   
+plot(Y(3, 1), Y(3, 2),  's', 'MarkerSize', 15, 'MarkerFaceColor', [0.3, 0.05, 0.4], 'MarkerEdgeColor', [0.3, 0.05, 0.4]);   
+plot(Y(4, 1), Y(4, 2),   's', 'MarkerSize', 15, 'MarkerFaceColor', [0.1 , 0.6  , 0.4], 'MarkerEdgeColor', [0.1 , 0.6  , 0.4]);
+plot(Y(5, 1), Y(5, 2),  'o', 'MarkerSize', 15, 'MarkerFaceColor', [0.3, 0.05, 0.4], 'MarkerEdgeColor', [0.3, 0.05, 0.4]);   
+plot(Y(6, 1), Y(6, 2),   'o', 'MarkerSize', 15, 'MarkerFaceColor', [0.1 , 0.6  , 0.4], 'MarkerEdgeColor', [0.1 , 0.6  , 0.4]);
+
+text(Y(:,1), Y(:,2), {'EB-LR D1', 'EB-LR D2',  'EL-LB D1', 'EL-LB D2', 'LL-EL D1', 'LL-EL D2'}, ...
+     'VerticalAlignment','top', 'HorizontalAlignment','center'); %6 Condition
+% text(Y(3:6,1), Y(3:6,2), {'EL-LB D1', 'EL-LB D2', 'LL-EL D1', 'LL-EL D2'}, ...
+%      'VerticalAlignment','top', 'HorizontalAlignment','center'); %4 condition
+title('MDS');
+xlabel('Dimension 1'); xticks(-1:0.5:1); xlim([-1,1]); 
+ylabel('Dimension 2'); yticks(-1:0.5:1); ylim([-1,1]); 
+grid off;
+axis equal;
+box off;
