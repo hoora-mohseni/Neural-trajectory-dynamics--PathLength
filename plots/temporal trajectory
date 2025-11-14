@@ -1,0 +1,48 @@
+%====================================================================================
+%% Visulize the temporal trajectory 
+%====================================================================================
+
+% Define a subject 
+figure;
+subj = 9; % Change this to the desired subject index
+subjectCentroid = struct();
+a = 1:30;
+projData = pcaProjections.(epochs{2}); % baseline
+% nexttile; 
+hold on;
+
+% Get the colormap
+nPoints = 30;
+cmap = viridis(nPoints+1);
+
+x = projData(:, 1, subj);
+y = projData(:, 2, subj);
+z = projData(:, 3, subj);
+
+dx = diff(x);
+dy = diff(y);
+dz = diff(z);
+
+% Plot each segment of the line with a different color
+for i = 1:nPoints
+    plot3(x(i:i+1), y(i:i+1), z(i:i+1), 'Color', cmap(i,:), 'LineWidth', 2);
+    plot3(x(i), y(i), z(i), '.', 'MarkerSize', 15, 'MarkerEdgeColor', cmap(i, :));
+    
+end
+
+plot3(x(i+1), y(i+1), z(i+1), '.', 'MarkerSize', 15, 'MarkerEdgeColor', cmap(i+1, :));
+
+subjectCentroid = mean(projData(:, :, subj));
+scatter3(subjectCentroid(1), subjectCentroid(2), subjectCentroid(3), 100, 'k', 'LineWidth', 2, 'Marker', 'x');
+    
+colormap(viridis);
+title([epochs(2), 'Trajectory and Centroid for Subject ', num2str(subj)]);
+grid on;
+view(3); axis square; hold off; 
+set(gcf, 'Position', [100, 100, 600, 600]); legend('Timecourse', 'Centroid', 'Location', 'bestoutside');
+
+xlabel('PC1'); ylabel('PC2'); zlabel('PC3');
+set(gca, 'LineWidth', .7)
+set(gca, 'XTickLabel', []);
+set(gca, 'YTickLabel', []);
+set(gca, 'ZTickLabel', []);
