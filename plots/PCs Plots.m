@@ -1,226 +1,8 @@
-clc 
-clear
-close
-
-%% Extract Phases
-% Cortex data directory
-data_dir = [pwd, '/../VMRD1D2_fMRIData 2/vmr_schaefer400_subcortex'];
-cerebellum_dir = [pwd, '/../VMRD1D2_fMRIData 2/nettekoven_cerebellum']; % Cerebellum data directory
-
-files = dir(data_dir);
-cerebellum_files = dir(cerebellum_dir);
-
-% Subject list
-subject_dir = [pwd, '/../VMRD1D2_fMRIData 2/Data4paper_Aug2020_Bins1-3 (1)'];
-subjectsRange = 'C1:C32';
-subjects = readcell(subject_dir, 'Range', subjectsRange);
-
-matchedFiles = {};
-for i = 1:numel(files)
-    for j = 1:numel(subjects)
-        if contains(files(i).name, subjects{j}, 'IgnoreCase', true)
-            matchedFiles{end+1, 1} = files(i).name;
-            break; 
-        end
-    end
-end
-
-matchedCerebellumFiles = {};
-for i = 1:numel(cerebellum_files)
-    for j = 1:numel(subjects)
-        if contains(cerebellum_files(i).name, subjects{j}, 'IgnoreCase', true)
-            matchedCerebellumFiles{end+1, 1} = cerebellum_files(i).name;
-            break; 
-        end
-    end
-end
-
-combinedData = cell(numel(matchedFiles), 1); 
-
-for i = 1:numel(matchedFiles)
-    cortexData = readmatrix([data_dir, '/', matchedFiles{i}], 'FileType', 'text', 'Delimiter', '\t');
-    cerebellumData = readmatrix([cerebellum_dir, '/', matchedCerebellumFiles{i}], 'FileType', 'text', 'Delimiter', '\t');
-    combinedData{i} = [cortexData, cerebellumData];
-end
-
-headers = readtable([data_dir, '/', matchedFiles{1}], 'FileType', 'text');
-headers = headers.Properties.VariableNames;
-
-disp('Data successfully combined for all matched subjects.');
-
-days = {'data_ses1', 'data_ses2'};
-
-% Separate Rotation Data
-rotation_D1 = {};
-rotation_D2 = {};
-for i = 1:numel(matchedFiles)
-    if contains(matchedFiles{i}, 'rotation', 'IgnoreCase', true)
-        if contains(matchedFiles{i}, 'ses-01', 'IgnoreCase', true)
-            rotation_D1{end+1, 1} = i;
-        else
-            rotation_D2{end+1, 1} = i; 
-        end
-    end
-end
-
-% Load Rotation Data
-numSubjects = numel(subjects);
-rotationDay1 = []; 
-rotationDay2 = []; 
-for idx = 1:numel(rotation_D1)
-    rotationDay1(:, :, idx) = combinedData{rotation_D1{idx}}; 
-end
-
-for idx = 1:numel(rotation_D2)
-    rotationDay2(:, :, idx) = combinedData{rotation_D2{idx}}; 
-end
-
-% Rotaion Analysis
-WL = 240;
-%
-
-baselineDay1 = rotationDay1(9:248, :, :);
-learningDay1 = rotationDay1(248+1:248+640, :, :);
-
-baselineDay2 = rotationDay2(9:248, :, :);
-learningDay2 = rotationDay2(248+1:248+640, :, :);
-
-% Separate Rest Data
-rest_D1 = {};
-rest_D2 = {};
-for i = 1:numel(matchedFiles)
-    if contains(matchedFiles{i}, 'rest_run-2', 'IgnoreCase', true)
-        if contains(matchedFiles{i}, 'ses-01', 'IgnoreCase', true)
-            rest_D1{end+1, 1} = i; 
-        else
-            rest_D2{end+1, 1} = i; 
-        end
-    end
-end
-
-% Load Rest Data
-restDay1 = []; 
-restDay2 = []; 
-for idx = 1:numel(rest_D1)
-    restDay1(:, :, idx) = combinedData{rest_D1{idx}}; 
-end
-
-for idx = 1:numel(rest_D2)
-    restDay2(:, :, idx) = combinedData{rest_D2{idx}}; 
-end
-
-restDay1 = restDay1(:, :, :);
-restDay2 = restDay2(:, :, :);
-
-% Separate Washout Data
-washout_D1 = {};
-washout_D2 = {};
-for i = 1:numel(matchedFiles)
-    if contains(matchedFiles{i}, 'washout', 'IgnoreCase', true)
-        if contains(matchedFiles{i}, 'ses-01', 'IgnoreCase', true)
-            washout_D1{end+1, 1} = i; 
-        else
-            washout_D2{end+1, 1} = i; 
-        end
-    end
-end
-
-% Load Washout Data
-washoutDay1 = [];
-washoutDay2 = []; 
-for idx = 1:numel(washout_D1)
-    washoutDay1(:, :, idx) = combinedData{washout_D1{idx}}; 
-end
-
-for idx = 1:numel(washout_D2)
-    washoutDay2(:, :, idx) = combinedData{washout_D2{idx}};
-end
-
-washoutDay1 = washoutDay1(9:248, :, :);
-washoutDay2 = washoutDay2(9:248, :, :);
-
-epochs = {'restDay1', 'baselineDay1', 'learningDay1', 'washoutDay1', 'restDay2', 'baselineDay2', 'learningDay2', 'washoutDay2'};
-
-%%  Smooth data using Savitzky-Golay filter 
-
-% Initialize structure to store smoothed data 
-smoothedData   = struct();
-
-% Define the polynomial order and frame length for the Savitzky-Golay filter
-polynomialOrder = 1;
-frameLength     = 3;  % You can adjust this depending on your data
-
-% Apply Savitzky-Golay filter and PCA projection for each phase
-for i = 1:numel(epochs)
-    phase = epochs{i};
-    for subj = 1:numSubjects
-        currentMatrix = eval(phase); 
-        % Smooth the data using the Savitzky-Golay filter
-        smoothedData.(phase)(:,:,subj) = sgolayfilt(currentMatrix(:,:,subj), polynomialOrder, frameLength, [], 1);
-
-        %Project the smoothed data into PCA space (using the first few components)
-        [coeff, score, latent, ~, explained, mu] = pca(smoothedData.(phase)(:,:,subj));
-        pcaProjections.(phase)(:,:,subj) = score(:, 1:10);  % Using the first 10 principal components
-        pcaCoeff.(phase)(:, :, subj) = coeff(:, 1:10);
-        
-    end
-end
-
-%% Sliding Window Path Length and Nonlinearity Calculation for each PC
-
-W = 16; % Window size
-S = 8;  % Step size
-
-% Concatenate all epochs into a single time series per subject
-pathLengthPCs = struct();
-nonlinearity = struct();
-epochWindowCounts = zeros(1, numel(epochs)); 
-
-for i = 1:numel(epochs)
-   
-    maxEpochLength = size(pcaProjections.(epochs{i}), 1);
-    maxNumWindows = max(0, floor((maxEpochLength - W) / S) + 1);
-    
-    pathLengthPCs.(epochs{i}) = zeros(numSubjects, maxNumWindows);
-    nonlinearity.(epochs{i}) = zeros(numSubjects, maxNumWindows);
-end
-
-for subj = 1:numSubjects
-    for i = 1:numel(epochs)
-        epochData = pcaProjections.(epochs{i})(:, :, subj);
-        epochLength = size(epochData, 1);  
-
-        numWindows = max(0, floor((epochLength - W) / S) + 1);
-        epochWindowCounts(i) = numWindows; 
-        
-        for win = 1:numWindows
-            startIdx = (win - 1) * S + 1;
-            endIdx   = startIdx + W - 1;
-            
-            if endIdx > epochLength
-                continue; % Skip if window exceeds data length
-            end
-            for pc = 1:10
-                traj       = epochData(startIdx:endIdx, pc); % Extract windowed data
-                diffs      = diff(traj);
-                dists      = sqrt(sum(diffs.^2, 2));
-                pathLength = sum(dists); % Sum over distances in window
-                
-                % Compute Nonlinearity
-                totalDist = sqrt(sum((traj(end, :) - traj(1, :)).^2)); % Distance from first to last point
-                nonlinearityMeasure = pathLength / totalDist;
-                
-                % Store results without overwriting previous epochs
-                pathLengthPCs.(epochs{i})(subj, win, pc) = pathLength;
-                nonlinearityPCs.(epochs{i})(subj, win, pc) = nonlinearityMeasure;
-            end
-        end
-    end
-end
-
+%====================================================================================
 %% Plot PathLength for each PC
+%====================================================================================
 
-for pc = 1:3
+for pc = 1:10
     figure('color', 'w', 'Position', [300, 300, 700, 300]);
     x_s     = 5; % Initialize x-axis offset
     x_total = x_s;
@@ -234,13 +16,6 @@ for pc = 1:3
              [0, 0, 100, 100], ...
              [0.85 0.85 0.85], 'EdgeColor', 'none');
         hold on;
-
-        if i ~= 1 && i ~= 5
-            fill([bins(1)-0.5, bins(4)+0.5, bins(4)+0.5, bins(1)-0.5], ...
-                 [0, 0, 100, 100], ...
-                 [0.85 0.85 0.85], 'EdgeColor', 'none');  % light gray
-            hold on
-        end
 
         s1 = shadedErrorBar(x_s:x_s+epochWindowCounts(i)-1, mean(pathLengthPCs.(epochs{i})(:,:,pc)), ...
                                std(pathLengthPCs.(epochs{i})(:,:,pc))/sqrt(numSubjects), ...
@@ -258,96 +33,19 @@ for pc = 1:3
     end
     box off
     set(gca, "FontSize", 15)
-    yticks(10:5:30); ylim([10, 30])
+    %yticks(10:5:30); ylim([10, 30])
     xticks(x_total); xticklabels([1, 21, 22, 51, 52, 131, 132, 161])
-    %xlabel("Trial Number"); pl = ylabel(sprintf("Path Length, pc %d", pc)); xlim([0, x_total(end-1)])
-    %pl.Position = pl.Position - [3, 0, 0];
-    %legend([s1.patch, s2.patch], {"Day 1", "Day 2"}, "Location", "North")
-    %legend box off
+    xlabel("Trial Number"); pl = ylabel(sprintf("Path Length, pc %d", pc)); xlim([0, x_total(end-1)])
+    pl.Position = pl.Position - [3, 0, 0];
+    legend([s1.patch, s2.patch], {"Day 1", "Day 2"}, "Location", "North")
+    legend box off
 end
 
-%% --- Plot trajectories without Overlap ---
-
-figure('color', 'w', 'Position', [300, 300, 1000, 500]);
-
-x_s     = 5; % Initialize x-axis offset
-x_total = x_s;
-
-for i = 1:4
-
-    s1 = shadedErrorBar(x_s:x_s+epochWindowCounts(i)-1, mean(pathLengthPCs.(epochs{i})), ...
-                               std(pathLengthPCs.(epochs{i}))/sqrt(numSubjects), ...
-                               {'Color', 'b'}, 1, 1);
-    
-    hold on
-
-    s2 = shadedErrorBar(x_s:x_s+epochWindowCounts(i)-1, mean(distancePCs.(epochs{i})), ...
-                           std(distancePCs.(epochs{i}))/sqrt(numSubjects), ...
-                           {'Color', 'g'}, 1, 1);
-    
-    x_s = x_s + epochWindowCounts(i) + 10; 
-    
-    x_total = [x_total, x_s-10];
-    x_total = [x_total, x_s];
-
-end
-
-
-box off
-set(gca, "FontSize", 15)
-% yticks(70:10:120); ylim([70, 120])
-xticks(x_total); xticklabels([1, 21, 22, 51, 52, 131, 132, 161])
-xlabel("Trial Number"); pl = ylabel("Trajectory"); xlim([0, x_total(end-1)])
-% pl.Position = pl.Position - [3, 0, 0];
-legend([s1.patch, s2.patch], {"Path Length", "Net Distance"}, "Location", "North")
-legend box off
-
-%% 
-PCspathlength = struct();
-for i = 1:numel(epochs)
-        PCspathlength.early.(epochs{i})= pathLengthPCs.(epochs{i})(:,1:4,:);
-        PCspathlength.late.(epochs{i})= pathLengthPCs.(epochs{i})(:,end-3:end,:);
-end
-
-%%  Convert data to table 
-
-stages = {'early', 'late'};
-T = table(subjects, 'VariableNames', {'Subject'});
+%====================================================================================
+%%  Early & Late barplots
+%====================================================================================
 
 for pc = 1:10
-    for p = 1:numel(epochs)
-        for i =1:numel(stages)
-            columnName = sprintf('PC%d_%s_%s', pc, stages{i}, epochs{p}); % Format column name
-            
-            % Extract 32×1 data for each subject
-            dataColumn = PCspathlength.(stages{i}).(epochs{p})(:, :, pc);
-            avgDataColumn = mean(dataColumn, 2);
-            % Append to table
-            T.(columnName) = avgDataColumn;
-        end
-    end
-end
-
-% Save table as CSV file
-%writetable(T, 'PCsPathlength_earlyLateTable.csv');
-
-%%
-
-for p = 1:numel(epochs)
-    for i =1:numel(stages)
-            columnName = sprintf('PC%d_%s_%s', pc, stages{i}, epochs{p}); % Format column name
-            
-            % Extract 32×1 data for each subject
-            dataColumn = PCspathlength.(stages{i}).(epochs{p})(:, :, pc);
-            avgDataColumn = mean(dataColumn, 2);
-            % Append to table
-            T.(columnName) = avgDataColumn;
-    end
-end
-
-
-%%  Early & Late barplots
-for pc = 1:6
     
     allSubjectData = cell(numel(epochs), 2);  % For scatter
     
@@ -431,10 +129,11 @@ end
 % legend([h1, h2,], {}, "Location", "northeast")
 % legend box off
 
+%====================================================================================
 %% pathLengh total and each Pc correlation- both Days
+%====================================================================================
 
-
-for p = 7:10
+for p = 1:10
     
     figure('color', 'w', 'Position', [300, 300, 1000, 400]);
     r_path = [];
@@ -505,7 +204,10 @@ for p = 7:10
     %legend([a(6), a(7), a(8)], {' ', ' ', ' '});
 
 end
+
+%====================================================================================
 %% Show first 10 PCs variance
+%====================================================================================
 
 disp(table((1:10)', l(1:10), ex(1:10), ...
     'VariableNames', {'PC', 'Variance', 'PercentExplained'}));
@@ -530,7 +232,9 @@ title('Explained Variance & Cumulative Sum');
 legend('Percent Explained','Cumulative Sum','Location','best');
 box off;
 
+%====================================================================================
 %%  Correlate Each PC with Brain Map 
+%====================================================================================
 
 
 meanActivity = [];
