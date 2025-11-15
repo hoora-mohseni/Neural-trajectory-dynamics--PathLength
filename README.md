@@ -13,7 +13,8 @@ Contains scripts to load the neural and behavioural data, compute neural traject
 Key scripts might include:  
 - `MainCode` — loads data, calculates gradient Maps, Smooths data & calculates projections.  
 - `NetDisplacementSlidingWindow.m` — computes the Path Length.
-- `PathLengthSlidingWindow.m` — computes the Net Displacement.  
+- `PathLengthSlidingWindow.m` — computes the Net Displacement.
+- `behaviouralData_Error&ReactionTime.m` - Extract Error and Reaction time.
 - `PcslidingWindow.m` —  computes Trajectories for each principal component.
 - `contrastBrainMaps.m` —  computes task-transition BOLD contrast maps, builds the representational similarity matrix, and performs MDS.
 - `headMotion.m` —  extracts framewise displacement and DVARS, and fits/plots mixed-effects models relating FD, DVARS, and path length to phase and day.
