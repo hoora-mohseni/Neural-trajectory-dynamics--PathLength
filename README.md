@@ -1,6 +1,6 @@
 # PathLength
 
-# Neural-trajectory-dynamics – PathLength  
+# Neural Trajectory Dynamics
 Scripts for the analyses and plots of the manuscript: *[Neural trajectory dynamics during human motor learning]*  
 
 ## Overview  
